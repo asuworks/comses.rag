@@ -7,9 +7,11 @@ meta {
 get {
   url: http://{{server_ip}}:8000/
   body: none
-  auth: bearer
+  auth: apikey
 }
 
-auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhc2QiLCJleHAiOjE3MzEyMTkwNTB9.ap0p9mxeC8Q7ZyGCLotlTBfKliawbFnDUjG3gTj3MfQ
+auth:apikey {
+  key: X-API-Key
+  value: secret-api-key
+  placement: header
 }

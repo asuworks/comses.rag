@@ -1,0 +1,24 @@
+meta {
+  name: spamcheck
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://{{server_ip}}:8000/spamcheck
+  body: json
+  auth: apikey
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: secret-api-key
+  placement: header
+}
+
+body:json {
+  {
+    "text": "Custom Patches UK is the ideal option if you want to raise brand awareness and promote your company. We have been in this industry for a long time and offer our clients high-quality patches.",
+  "type": "event"
+  }
+}

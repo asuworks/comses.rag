@@ -7,13 +7,15 @@ meta {
 post {
   url: http://{{server_ip}}:8000/chat?question=what's on the menu?
   body: none
-  auth: bearer
+  auth: apikey
 }
 
 params:query {
   question: what's on the menu?
 }
 
-auth:bearer {
-  token: 
+auth:apikey {
+  key: X-API-Key
+  value: secret-api-key
+  placement: header
 }

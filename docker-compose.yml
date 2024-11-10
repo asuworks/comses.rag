@@ -15,6 +15,7 @@ services:
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
       LANGFUSE_HOST: http://langfuse-server:3000
       TEMPORAL_ADDRESS: http://temporal:7233
+      API_KEY: ${API_KEY}
     ports:
       - 8000:8000
     networks:

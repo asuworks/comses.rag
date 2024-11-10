@@ -1,16 +1,22 @@
 import datetime
+from datetime import timedelta
 from operator import itemgetter
 import os
+
 
 import bcrypt
 import jwt
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Security, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from langchain.docstore.document import Document
 from langchain_community.vectorstores.pgvector import PGVector
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
+from fastapi import Query
+from langchain_core.messages import HumanMessage
+import json
+from typing import Literal
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langfuse import Langfuse
@@ -20,10 +26,15 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 from contextlib import asynccontextmanager
 import logging
+from fastapi.security.api_key import APIKeyHeader
+from starlette.exceptions import HTTPException
+from starlette.status import HTTP_403_FORBIDDEN
 
 
 load_dotenv()
 
+
+API_KEY = os.getenv("API_KEY")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST")
 DATABASE_URL = os.getenv("DATABASE_URL")
 LANGFUSE_HOST = os.getenv("LANGFUSE_HOST")
@@ -90,7 +101,8 @@ template = """
 Answer the question based only on the following context:
 {context}
 
-Always speak to the user with his/her name: {name}. Never forget the user's name. Say Hello {name}
+Always speak to the user with his/her name: {name}. 
+Never forget the user's name. Say Hello {name}
 Question: {question}
 """
 
@@ -118,6 +130,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 SECRET_KEY = "your_jwt_secret_key"
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    logger.info(api_key_header)
+    logger.info(API_KEY)
+    if api_key_header == API_KEY:
+        return api_key_header
+    else:
+        raise HTTPException(
+            status_code=HTTP_403_FORBIDDEN, detail="Could not validate API key"
+        )
 
 
 def authenticate_user(username: str, password: str, db: Session):
@@ -169,23 +194,22 @@ def get_langfuse():
     )
 
 
+# def get_trace_handler(
+#     langfuse: Langfuse = Depends(get_langfuse), user=Depends(get_current_user)
+# ):
+#     if user is None:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated"
 def get_trace_handler(
-    langfuse: Langfuse = Depends(get_langfuse), user=Depends(get_current_user)
+    langfuse: Langfuse = Depends(get_langfuse),
+    api_key: str = Depends(get_api_key),
 ):
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated"
-        )
-    trace = langfuse.trace(user_id=user.username)
+    trace = langfuse.trace(user_id=api_key)
     return trace.get_langchain_handler()
 
 
 @app.get("/")
-async def read_root(user=Depends(get_current_user)):
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated"
-        )
+async def read_root(api_key: str = Depends(get_api_key)):
     logger.info("Root endpoint accessed")
     return {"Hello": "World"}
 
@@ -215,7 +239,9 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
         )
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=timedelta(hours=1)
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -234,12 +260,69 @@ def login(
 
 @app.post("/chat/")
 async def quick_response(
-    question: str, user=Depends(get_current_user), handler=Depends(get_trace_handler)
+    question: str,
+    api_key: str = Depends(get_api_key),
+    handler=Depends(get_trace_handler),
 ):
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated"
-        )
-    query = {"question": question, "name": user.username}
+    # if user is None:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated"
+    #     )
+    # query = {"question": question, "name": user.username}
+    query = {"question": question, "name": "Bruno"}
     result = await chain.ainvoke(query, config={"callbacks": [handler]})
     return result
+
+
+# Define the ContentType
+ContentType = Literal["event", "job", "codebase", "user"]
+
+
+# Define the input model
+class SpamCheckInput(BaseModel):
+    type: ContentType
+    text: str
+
+
+@app.post("/spamcheck/")
+async def spam_check(
+    input_data: SpamCheckInput,
+    api_key: str = Depends(get_api_key),
+    handler=Depends(get_trace_handler),
+):
+    logger.info(f"Checking {input_data.type} with text {input_data.text}.")
+
+    text = input_data.text[0:500]
+
+    prompt = {
+        "role": "human",
+        "content": f"""Is this a spam submission for the {input_data.type} board on a website for computational modelling and agent based modelling in social and ecological studies: ```{text}```
+
+Respond using JSON only with the following structure:
+{{
+    "is_spam": boolean,
+    "spam_indicators": [list of indicators],
+    "reasoning": "brief explanation",
+    "confidence": float (0-1)
+}}""",
+    }
+
+    chat_model = ChatOllama(base_url=OLLAMA_HOST, model="llama3.2", format="json")
+    messages = [prompt]
+
+    response = await chat_model.ainvoke(messages, config={"callbacks": [handler]})
+
+    try:
+        result = json.loads(response.content)
+        if "is_spam" in result and "confidence" in result:
+            return result
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Response JSON does not contain required fields",
+            )
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to parse the spam check result as JSON",
+        )
