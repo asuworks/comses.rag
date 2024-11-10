@@ -1,0 +1,172 @@
+{
+  "name": "comses.rag api",
+  "version": "1",
+  "items": [
+    {
+      "type": "http",
+      "name": "chat",
+      "seq": 2,
+      "request": {
+        "url": "http://{{server_ip}}:8000/chat?question=what's on the menu?",
+        "method": "POST",
+        "headers": [],
+        "params": [
+          {
+            "name": "question",
+            "value": "what's on the menu?",
+            "type": "query",
+            "enabled": true
+          }
+        ],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "auth": {
+          "mode": "bearer",
+          "bearer": {
+            "token": ""
+          }
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "token",
+      "seq": 4,
+      "request": {
+        "url": "http://{{server_ip}}:8000/token",
+        "method": "POST",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "multipartForm",
+          "json": "{\n  \"username\": \"asd\",\n  \"password\": \"asd\"\n}",
+          "formUrlEncoded": [],
+          "multipartForm": [
+            {
+              "type": "text",
+              "name": "username",
+              "value": "asd",
+              "enabled": true
+            },
+            {
+              "type": "text",
+              "name": "password",
+              "value": "asd",
+              "enabled": true
+            }
+          ]
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "auth": {
+          "mode": "basic",
+          "basic": {
+            "username": "asd",
+            "password": "asd"
+          }
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "register",
+      "seq": 3,
+      "request": {
+        "url": "http://{{server_ip}}:8000/register",
+        "method": "POST",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n  \"username\": \"asd\",\n  \"password\": \"asd\"\n}",
+          "formUrlEncoded": [
+            {
+              "name": "username",
+              "value": "asd",
+              "enabled": true
+            }
+          ],
+          "multipartForm": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "auth": {
+          "mode": "none"
+        }
+      }
+    },
+    {
+      "type": "http",
+      "name": "-",
+      "seq": 5,
+      "request": {
+        "url": "http://{{server_ip}}:8000/",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "none",
+          "formUrlEncoded": [],
+          "multipartForm": []
+        },
+        "script": {},
+        "vars": {},
+        "assertions": [],
+        "tests": "",
+        "auth": {
+          "mode": "bearer",
+          "bearer": {
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhc2QiLCJleHAiOjE3MzEyMTkwNTB9.ap0p9mxeC8Q7ZyGCLotlTBfKliawbFnDUjG3gTj3MfQ"
+          }
+        }
+      }
+    }
+  ],
+  "activeEnvironmentUid": "ntrDKlR8aMeOCTughrMs8",
+  "environments": [
+    {
+      "variables": [
+        {
+          "name": "server_ip",
+          "value": "{remote-server-ip}",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        }
+      ],
+      "name": "jetstream-instance"
+    },
+    {
+      "variables": [
+        {
+          "name": "server_ip",
+          "value": "127.0.0.1",
+          "enabled": true,
+          "secret": false,
+          "type": "text"
+        }
+      ],
+      "name": "localhost"
+    }
+  ],
+  "brunoConfig": {
+    "version": "1",
+    "name": "comses.rag api",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ]
+  }
+}

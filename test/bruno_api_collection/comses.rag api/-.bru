@@ -1,0 +1,15 @@
+meta {
+  name: -
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://{{server_ip}}:8000/
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhc2QiLCJleHAiOjE3MzEyMTkwNTB9.ap0p9mxeC8Q7ZyGCLotlTBfKliawbFnDUjG3gTj3MfQ
+}

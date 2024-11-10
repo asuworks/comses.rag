@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "comses.rag api",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

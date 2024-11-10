@@ -1,0 +1,41 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Poetry specific
+.poetry/
+
+# IDE specific (optional, but commonly used)
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store  # macOS
+Thumbs.db  # Windows
+
+# Logs
+*.log
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Build output
+dist/
+build/
+*.egg-info/
+
+.env
+*.env
+
+.tool-versions
+.direnv
+.envrc
+
+local_data/
