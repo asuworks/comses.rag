@@ -17,11 +17,11 @@ kt:
 ######################################
 
 # develop services
-ds:
+d:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # kill develop services
-kds:
+kd:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 
@@ -30,11 +30,11 @@ kds:
 ######################################
 
 # prod services
-ps:
+p:
 	docker compose up -d
 
 # kill prod services
-kps:
+kp:
 	docker compose down
 
 redeploy:

@@ -1,0 +1,17 @@
+[
+    {
+        "content_type": "event",
+        "content_text": "Join our free webinar on AI in computational modeling!",
+        "expected_spam": "false"
+    },
+    {
+        "content_type": "job",
+        "content_text": "URGENT: Make $$$$ working from home as a part-time modeler!",
+        "expected_spam": "true"
+    },
+    {
+        "content_type": "codebase",
+        "content_text": "Check out my new social simulation framework - 100% efficient!",
+        "expected_spam": "false"
+    }
+]

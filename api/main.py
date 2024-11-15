@@ -83,7 +83,7 @@ def get_db():
         db.close()
 
 
-embeddings = OllamaEmbeddings(base_url=OLLAMA_HOST, model="llama3.1")
+embeddings = OllamaEmbeddings(base_url=OLLAMA_HOST, model="llama3.2")
 
 store = PGVector(
     collection_name="mydatabase",
@@ -107,7 +107,7 @@ Question: {question}
 """
 
 prompt = ChatPromptTemplate.from_template(template)
-model = ChatOllama(base_url=OLLAMA_HOST, model="llama3.1")
+model = ChatOllama(base_url=OLLAMA_HOST, model="llama3.2")
 
 chain = (
     {

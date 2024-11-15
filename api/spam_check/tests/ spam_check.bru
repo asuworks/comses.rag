@@ -1,0 +1,34 @@
+meta {
+  name: Spam Check
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/spamcheck
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "{{content_type}}",
+    "text": "{{content_text}}"
+  }
+}
+
+tests {
+  test("Check if is_spam is correctly identified", function() {
+    const responseBody = res.getBody();
+    expect(responseBody).to.be.an('object');
+    expect(responseBody).to.have.property('is_spam');
+    expect(responseBody.is_spam).to.be.a('boolean');
+    
+    // Additional assertions based on expected results
+    if (env.expected_spam === "true") {
+      expect(responseBody.is_spam).to.be.true;
+    } else {
+      expect(responseBody.is_spam).to.be.false;
+    }
+  });
+}

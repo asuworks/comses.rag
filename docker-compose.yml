@@ -2,6 +2,29 @@ x-common-env: &common-env
   networks:
     - comses-rag-network
 services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - 7869:11434
+    volumes:
+      - ./local_data/ollama:/root/.ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    restart: always
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - ollama-docker
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
   api:
     container_name: api
     build:
@@ -16,10 +39,12 @@ services:
       LANGFUSE_HOST: http://langfuse-server:3000
       TEMPORAL_ADDRESS: http://temporal:7233
       API_KEY: ${API_KEY}
+      COMSES_URL: ${COMSES_URL}
     ports:
-      - 8000:8000
+      - ${API_PORT}:8000
     networks:
       - temporal-network
+      - ollama-docker
       - comses-rag-network
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -128,3 +153,5 @@ networks:
   comses-rag-network:
     name: comses-rag-network
     driver: bridge
+  ollama-docker:
+    name: ollama-docker
