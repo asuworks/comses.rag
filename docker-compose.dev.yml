@@ -1,12 +1,12 @@
 services:
-  api:
-    volumes:
-      - ./api:/app/api
+#  api:
+#    volumes:
+#      - ./api:/app/api
 
   vector-db:
     ports:
       - 5433:5432
 
-  record-manager-db:
+  models-db:
     ports:
       - 5434:5432

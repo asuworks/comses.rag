@@ -9,7 +9,7 @@
 **/.venv
 **/.classpath
 **/.dockerignore
-**/.env
+src/delete_me/.env
 **/*.env
 **/.git
 **/.gitignore
@@ -23,9 +23,9 @@
 **/*.jfm
 **/bin
 **/charts
-**/docker-compose*
+src/delete_me/docker-compose.yml
 **/compose.y*ml
-**/Dockerfile*
+src/delete_me/Dockerfile
 **/node_modules
 **/npm-debug.log
 **/obj

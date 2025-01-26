@@ -1,0 +1,170 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator gfs-client {
+  provider             = "prisma-client-py"
+  output               = "./models_db_prisma_client"
+  interface            = "asyncio"
+  recursive_type_depth = "5"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MODELS_DB_URL")
+}
+
+model Model {
+  id          String        @id @default(uuid())
+  external_id String        @unique
+  metadata    ModelMetadata @relation(fields: [metadata_id], references: [id])
+  metadata_id String        @unique
+  docs        ModelDoc?
+  code        ModelCode?
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model ModelMetadata {
+  id                    String                @id @default(uuid())
+  model                 Model?
+  publisher_id          String
+  publisher             Organization          @relation(fields: [publisher_id], references: [id])
+  name                  String
+  abstract              String
+  description           String
+  version               String
+  programming_languages ProgrammingLanguage[]
+  authors               Person[]
+  url                   String
+  identifier            String
+  date_created          DateTime              @db.Timestamptz(6)
+  date_modified         DateTime              @db.Timestamptz(6)
+  keywords              String[]
+  citation              String[]
+  license               String
+  release_notes         String
+  categories            Category[]
+  tags                  Tag[]
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime              @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model ModelDoc {
+  id                          String       @id @default(uuid())
+  model                       Model        @relation(fields: [model_id], references: [id])
+  model_id                    String       @unique
+  markdown_object_name        String
+  original_source_object_name String
+  docs_summary                String
+  doc_sections                DocSection[]
+  created_at                  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model DocSection {
+  id          String         @id @default(uuid())
+  model_doc   ModelDoc       @relation(fields: [modeldoc_id], references: [id])
+  modeldoc_id String
+  parent      DocSection?    @relation("ParentChild", fields: [parent_id], references: [id])
+  parent_id   String?
+  children    DocSection[]   @relation("ParentChild")
+  title       String
+  level       Int
+  content     String
+  chunks      Chunk[]
+  summary     String
+  qas         DocSectionQA[]
+  created_at  DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model DocSectionQA {
+  id            String     @id @default(uuid())
+  doc_section   DocSection @relation(fields: [docsection_id], references: [id])
+  docsection_id String
+  question      String
+  answer        String
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model ChunkQA {
+  id         String   @id @default(uuid())
+  chunk      Chunk    @relation(fields: [chunk_id], references: [id])
+  chunk_id   String
+  question   String
+  answer     String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model Chunk {
+  id                   String     @id @default(uuid())
+  doc_section          DocSection @relation(fields: [docsection_id], references: [id])
+  docsection_id        String
+  type                 String
+  content              String
+  content_with_context String
+  summary              String
+  qas                  ChunkQA[]
+  created_at           DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model ModelCode {
+  id         String   @id @default(uuid())
+  model      Model    @relation(fields: [model_id], references: [id])
+  model_id   String   @unique
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model ProgrammingLanguage {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  model_metadata ModelMetadata[]
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model Organization {
+  id             String          @id @default(uuid())
+  type           String
+  name           String
+  url            String?
+  identifier     String?
+  same_as        String?
+  persons        Person[]
+  model_metadata ModelMetadata[]
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model Person {
+  id             String          @id @default(uuid())
+  type           String
+  given_name     String
+  family_name    String
+  email          String
+  affiliation    Organization    @relation(fields: [affiliation_id], references: [id])
+  affiliation_id String
+  model_metadata ModelMetadata[]
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model Category {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  model_metadata ModelMetadata[]
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
+model Tag {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  model_metadata ModelMetadata[]
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+}

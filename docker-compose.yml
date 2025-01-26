@@ -1,157 +1,67 @@
-x-common-env: &common-env
+x-common-env: &common-service-config
   networks:
     - comses-rag-network
+
 services:
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - 7869:11434
-    volumes:
-      - ./local_data/ollama:/root/.ollama
-    container_name: ollama
-    pull_policy: always
-    tty: true
-    restart: always
-    environment:
-      - OLLAMA_KEEP_ALIVE=24h
-      - OLLAMA_HOST=0.0.0.0
-    networks:
-      - ollama-docker
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-
-  api:
-    container_name: api
-    build:
-      context: .
-      dockerfile: ./api/Dockerfile
-    <<: *common-env
-    environment:
-      OLLAMA_HOST: ${OLLAMA_HOST}
-      DATABASE_URL: postgresql://postgres:${VECTOR_DB_PASSWORD}@vector-db:5432/postgres
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
-      LANGFUSE_HOST: http://langfuse-server:3000
-      TEMPORAL_ADDRESS: http://temporal:7233
-      API_KEY: ${API_KEY}
-      COMSES_URL: ${COMSES_URL}
-    ports:
-      - ${API_PORT}:8000
-    networks:
-      - temporal-network
-      - ollama-docker
-      - comses-rag-network
-    extra_hosts:
-      - host.docker.internal:host-gateway
-
-    depends_on:
-      - vector-db
-      - langfuse-server
-      - record-manager-db
-
-  vector-db:
-    container_name: vector-db
-    image: ankane/pgvector:latest
-    <<: *common-env
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${VECTOR_DB_PASSWORD}
-    volumes:
-      - ${VECTOR_DB_DATA_PATH}:/var/lib/postgresql/data
-    # The commented out section below is an example of how to define a PostgreSQL
-    # database that your application can use. `depends_on` tells Docker Compose to
-    # start the database before your application. The `db-data` volume persists the
-    # database data between container restarts. The `db-password` secret is used
-    # to set the database password. You must create `db/password.txt` and add
-    # a password of your choosing to it before running `docker compose up`.
-    #     depends_on:
-    #       db:
-    #         condition: service_healthy
-    #   db:
-    #     image: postgres
-    #     restart: always
-    #     user: postgres
-    #     secrets:
-    #       - db-password
-    #     volumes:
-    #       - db-data:/var/lib/postgresql/data
-    #     environment:
-    #       - POSTGRES_DB=example
-    #       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
-    #     expose:
-    #       - 5432
-    #     healthcheck:
-    #       test: [ "CMD", "pg_isready" ]
-    #       interval: 10s
-    #       timeout: 5s
-    #       retries: 5
-    # volumes:
-    #   db-data:
-    # secrets:
-    #   db-password:
-    #     file: db/password.txt
-
-
-  record-manager-db:
+  models-db:
+    <<: *common-service-config
     image: postgres:15-alpine
     restart: always
-    container_name: record-manager-db
+    container_name: models-db
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${RECORD_MANAGER_DB_PASSWORD}
+      - POSTGRES_PASSWORD=${MODELS_DB_PASSWORD}
       - POSTGRES_DB=postgres
     volumes:
-      - ${RECORD_MANAGER_DB_DATA_PATH}:/var/lib/postgresql/data
+      - ${MODELS_DB_DATA_PATH}:/var/lib/postgresql/data
 
-  langfuse-server:
-    image: langfuse/langfuse:2
-    <<: *common-env
-    restart: always
-    container_name: langfuse-server
-    depends_on:
-      langfuse-db:
-        condition: service_healthy
+  qdrant:
+      <<: *common-service-config
+      image: qdrant/qdrant:latest
+      restart: always
+      container_name: qdrant
+      environment:
+        - QDRANT__SERVICE__HTTP_PORT=${QDRANT_PORT}
+        - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+        - QDRANT__TELEMETRY_DISABLED=${QDRANT_DISABLE_TELEMETRY}
+      ports:
+        - 6333:6333
+        - 6334:6334
+      expose:
+        - 6333
+        - 6334
+        - 6335
+      configs:
+        - source: qdrant_config
+          target: /qdrant/config/production.yaml
+      volumes:
+        - ./local_data/qdrant_data:/qdrant/storage
+  minio:
+    <<: *common-service-config
+    container_name: minio
+    image: quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z
+    restart: unless-stopped
+    volumes:
+      - ./local_data/minio_data:/data
     ports:
-      - 3001:3000
+      - 9000:9000
+      - 9001:9001
     environment:
-      # https://langfuse.com/docs/deployment/self-host#configuring-environment-variables
-      - DATABASE_URL=postgresql://postgres:${LANGFUSE_DB_PASSWORD}@langfuse-db:5432/postgres
-      - NEXTAUTH_SECRET=${LANGFUSE_SECRET}
-      - SALT=${LANGFUSE_SALT}
-      - ENCRYPTION_KEY=${LANGFUSE_ENCRYPTION_KEY}
-      - NEXTAUTH_URL=${LANGFUSE_URL}
-      - TELEMETRY_ENABLED=false
-      - LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES=false
-      - AUTH_DISABLE_SIGNUP=false
-
-  langfuse-db:
-    image: postgres:15-alpine
-    <<: *common-env
-    restart: always
-    container_name: langfuse-db
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 3s
-      timeout: 3s
-      retries: 10
-    environment:
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${LANGFUSE_DB_PASSWORD}
-    volumes:
-      - ${LANGFUSE_DB_DATA_PATH}:/var/lib/postgresql/data
+      MINIO_ROOT_USER: "minio_user"
+      MINIO_ROOT_PASSWORD: "minio_password"
+      MINIO_ADDRESS: ":9000"
+      MINIO_CONSOLE_ADDRESS: ":9001"
+    command: minio server /data
 
 networks:
   temporal-network:
     external: true
+
   comses-rag-network:
     name: comses-rag-network
     driver: bridge
-  ollama-docker:
-    name: ollama-docker
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO

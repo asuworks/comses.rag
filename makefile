@@ -1,7 +1,6 @@
-
-######################################
-############## TEMPORAL ##############
-######################################
+########################################################################################
+######################################### TEMPORAL #####################################
+########################################################################################
 
 # start temporal services
 t:
@@ -12,29 +11,20 @@ kt:
 	cd temporal-server && docker compose -f docker-compose-postgres.yml down
 
 
-######################################
-################# DEV ################
-######################################
+########################################################################################
+####################################### MAIN SERVICES ##################################
+########################################################################################
 
-# develop services
+# start services for development (with source mapping and localhost port forwarding)
 d:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# kill develop services
-kd:
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
-
-
-######################################
-################## PROD ##############
-######################################
-
-# prod services
+# start services in production environment
 p:
 	docker compose up -d
 
-# kill prod services
-kp:
+# kill services
+k:
 	docker compose down
 
 redeploy:
@@ -42,3 +32,26 @@ redeploy:
 
 rebuild:
 	git pull && docker compose up -d --force-recreate --build
+
+
+########################################################################################
+###################################### TEMPORAL WORKERS  ###############################
+########################################################################################
+w:
+	python src/ingest/workers/ingest_worker/run.py
+	python src/shared/workers/minio_worker/run.py
+	python src/shared/workers/ollama_embedding_worker/run.py
+	python src/shared/workers/ollama_generate_worker/run.py
+	python src/shared/workers/postgres_db_worker/run.py
+	python src/shared/workers/vector_db_worker/run.py
+
+
+########################################################################################
+###################################### DATABASE ADMIN ##################################
+########################################################################################
+
+reset-models-db:
+	cd admin && python reset_models_db.py
+
+seed-models-db:
+	cd admin && python seed_models_db.py
